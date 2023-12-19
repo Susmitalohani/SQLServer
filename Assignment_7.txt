@@ -1,0 +1,92 @@
+----------------------------
+--Assignment_7
+--1.
+create or replace function highest_salary_of_depart(dept_id int)
+returns table(
+depart_id int,
+sal int
+)
+
+as
+$$
+declare 
+id varchar;
+begin 
+return query
+select a.department_id ,a.salary 
+from
+(select cast(e.department_id as int ),cast(e.salary as int) ,
+dense_rank() over(partition by department_id order by e.salary desc) as ranking from employees e ) a 
+where a.ranking =1 and a.department_id= dept_id;
+end;
+$$
+language 'plpgsql';
+	
+SELECT * FROM highest_salary_of_depart(20);
+
+---------------------------
+--2.
+create or replace function job_done(em_id int)
+returns table(
+emp_id int,
+job_done bigint
+)
+
+as 
+$$
+declare
+begin
+return query
+select cast(jh.employee_id as int) ,cast(count(jh.job_id) as bigint) 
+from job_history jh
+where jh.employee_id=em_id
+group by jh.employee_id;
+
+end;
+$$
+language 'plpgsql';
+
+select * from job_done(101);
+
+--------------------------------
+--3.
+create or replace function display_5_10_emp()
+returns table(
+emp_id int,
+emp_name varchar,
+salary numeric
+)
+
+as
+$$
+declare
+begin
+return query
+select cast(a.employee_id as int) ,cast( a.emp_name as varchar)  , a.salary 
+from
+(select e.employee_id ,concat(e.first_name,' ', e.last_name) emp_name ,e.salary ,
+row_number  () over(order by e.employee_id) ranking from employees e ) a 
+where a.ranking =5 or a.ranking=10;
+end;
+$$
+language 'plpgsql';
+
+select * from display_5_10_emp();
+---------------------------------
+--4.
+CREATE OR REPLACE FUNCTION get_employee_city_names()
+RETURNS TABLE (
+  employee_name VARCHAR(100),
+  city_name VARCHAR(100)
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT CONCAT(e.first_name, ' ', e.last_name)::VARCHAR(100) AS employee_name, l.city AS city_name
+  FROM employees e
+  JOIN departments d ON e.department_id = d.department_id
+  JOIN locations l ON d.location_id = l.location_id;
+END;
+$$ LANGUAGE plpgsql;
+
+select * from get_employee_city_names();

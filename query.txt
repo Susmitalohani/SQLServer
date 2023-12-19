@@ -1,0 +1,73 @@
+select orderid,orderdate,custid,empid from sales.orders 
+where orderdate  between '2007-06-01' and '2007-06-30';
+
+select orderid,orderdate,custid,empid from sales.orders 
+where orderdate = eomonth(orderdate);
+
+select empid,firstname,lastname
+from hr.Employees
+where lastname like '%a%a%';
+
+select * From sales.OrderDetails;
+select orderid,(qty*unitprice)as totalvalue
+from sales.OrderDetails
+where (qty*unitprice)>10000
+order by totalvalue;
+
+select * From sys.databases;
+
+select * from sales.Customers;
+select custid,
+substring(companyname,charindex(' ',companyname)+1,len(Companyname)) from sales.Customers;
+select custid,companyname from sales.customers where substring(companyname,len(companyname),1)='w';
+
+SELECT id, person_name, email, state  
+FROM persons WHERE SUBSTRING(state, LEN(state), 1) = 'a';
+
+select city,row_number() over (partition by city order by city)rn  from sales.Customers
+where rn>1
+group by city
+order by city;
+
+create table whatt (
+id int,
+name varchar(20),
+email varchar(20));
+
+insert into whatt values 
+(1,'susmita lohani','sus123@gmail.com'),
+(2,'sunisha bhattarai','sun123@gmail.com'),
+(3,'samima thapa','sam123@gmail.com'),
+(4,'pukar khanal','puk123@gmail.com'),
+(5,'pukar khanal','puk123@gmail.com');
+
+select * From whatt;
+select * From (
+select id,name,row_number() over (partition by name order by name)rn
+from whatt)a
+where rn>1;
+
+create table brands
+(
+    Year    int,
+    Brand   varchar(20),
+    Amount  int
+);
+insert into brands values (2018, 'Apple', 45000);
+insert into brands values (2019, 'Apple', 35000);
+insert into brands values (2020, 'Apple', 75000);
+insert into brands values (2018, 'Samsung',15000);
+insert into brands values (2019, 'Samsung',20000);
+insert into brands values (2020, 'Samsung',25000);
+insert into brands values (2018, 'Nokia', 21000);
+insert into brands values (2019, 'Nokia', 17000);
+insert into brands values (2020, 'Nokia', 14000);
+
+select * From brands;
+select brand,amount from (
+select Brand,row_number() over (Partition by brand order by brand)tt
+
+SELECT Brand
+FROM brands
+GROUP BY Brand
+HAVING MIN(Amount) < MAX(Amount);

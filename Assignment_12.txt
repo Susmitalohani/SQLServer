@@ -1,0 +1,114 @@
+-----------------------------
+--Assignment_12
+--1.
+create table details( 
+name varchar(10),
+address varchar(10),
+email varchar(20),
+floor int,
+resources varchar(10)
+);
+insert into details values(
+ 'A','Bangalore','A@gmail.com',1,'CPU'),
+('A','Bangalore','A1@gmail.com',1,'CPU'),
+('A','Bangalore','A2@gmail.com',2,'DESKTOP'),
+('B','Bangalore','B@gmail.com',2,'DESKTOP'),
+('B','Bangalore','B1@gmail.com',2,'DESKTOP'),
+('B','Bangalore','B2@gmail.com',1,'MONITOR');
+---------
+select name,count(floor)as total_visits from 
+details
+group by name;
+
+-------
+SELECT name, floor
+FROM (
+  SELECT name, floor, COUNT(*) AS num_visits,
+         DENSE_RANK() OVER (PARTITION BY name ORDER BY COUNT(*) DESC) AS rank
+  FROM details
+  GROUP BY name, floor
+) AS t
+WHERE rank = 1;
+
+-------
+select name,string_agg( distinct resources, ',')as resources from details
+group by name;
+
+
+------combining all three queries :
+SELECT t1.name, t1.total_visits, t2.floor, t3.resources
+FROM (
+  SELECT name, COUNT(floor) AS total_visits
+  FROM details
+  GROUP BY name
+) AS t1
+LEFT JOIN (
+  SELECT name, floor
+  FROM (
+    SELECT name, floor, COUNT(*) AS num_visits,
+           DENSE_RANK() OVER (PARTITION BY name ORDER BY COUNT(*) DESC) AS rank
+    FROM details
+    GROUP BY name, floor
+  ) AS t
+  WHERE rank = 1
+) AS t2
+ON t1.name = t2.name
+LEFT JOIN (
+  SELECT name, string_agg(DISTINCT resources, ',') AS resources
+  FROM details
+  GROUP BY name
+) AS t3
+ON t1.name = t3.name;
+
+-----------------------------
+--2.
+create table salary(id int,
+fname varchar(25),
+lname varchar(25),
+salary int
+);
+
+insert into salary values 
+(1,'Vishal','Kaushal',8000),
+(2,'Akshay','Kumar',9000),
+(3,'Zishan','Khan',3000),
+(4,'Khan','Zishan',5000),
+(5,'Katrina','Kaif',10000),
+(6,'Kaushal','Vishal',4000);
+ 
+select a.fname, a.lname, a.salary from  
+(select s.id,
+case 
+when s.fname='Zishan' then s.lname='Khan'
+when  s.fname='Vishal' then s.lname='Kaushal'
+end as name,s.fname,s.lname,s.salary+s2.salary as salary
+from salary s,salary s2  
+where s.fname =s2.lname)a
+where a.name=true
+union all
+select s.fname,s.lname,s.salary 
+from salary s 
+where s.fname not in (select s2.lname 
+from salary s2);
+
+-----------------------------
+--3.
+create table maxrows(name varchar(50),amount1 int,amount2 int,amount3 int)
+insert into maxrows values 
+('Vishal',5000,6800,4300),
+('Rahul',3500,1000,2200),
+('Simran',9800,9999,9990),
+('Sukarn',5600,7757,8897),
+('Vijay',6647,9898,10000);
+
+
+SELECT name, GREATEST(amount1, amount2, amount3) AS max_amount
+FROM maxrows;
+
+--------------or----------
+select m.name,case 
+when (m.amount1>=m.amount2 and m.amount1>=m.amount3) then m.amount1
+when (m.amount2>=m.amount1 and m.amount2>=m.amount3) then m.amount2
+else m.amount3
+ end "MaxAmt"
+from maxrows m;

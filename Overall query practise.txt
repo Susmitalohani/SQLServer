@@ -1,0 +1,2095 @@
+
+
+CREATE
+TABLE SALES (
+
+
+  CUSTOMER_ID VARCHAR(1),
+
+  ORDER_DATE DATE,
+
+  PRODUCT_ID INTEGER
+
+);
+
+
+
+
+INSERT INTO SALES VALUES
+
+  ('A', '2021-01-01', '1'),
+
+  ('A', '2021-01-01', '2'),
+
+  ('A', '2021-01-07', '2'),
+
+  ('A', '2021-01-10', '3'),
+
+  ('A', '2021-01-11', '3'),
+
+  ('A', '2021-01-11', '3'),
+
+  ('B', '2021-01-01', '2'),
+
+  ('B', '2021-01-02', '2'),
+
+  ('B', '2021-01-04', '1'),
+
+  ('B', '2021-01-11', '1'),
+
+  ('B', '2021-01-16', '3'),
+
+  ('B', '2021-02-01', '3'),
+
+  ('C', '2021-01-01', '3'),
+
+  ('C', '2021-01-01', '3'),
+
+  ('C', '2021-01-07', '3');
+
+ 
+
+
+
+
+CREATE TABLE MENU (
+
+  PRODUCT_ID INTEGER,
+
+  PRODUCT_NAME VARCHAR(5),
+
+  PRICE INTEGER
+
+);
+
+
+
+
+INSERT INTO MENU VALUES
+
+  ('1', 'sushi', '10'),
+
+  ('2', 'curry', '15'),
+
+  ('3', 'ramen', '12');
+
+  
+
+
+
+
+CREATE TABLE MEMBERS (
+
+  CUSTOMER_ID VARCHAR(1),
+
+  JOIN_DATE DATE
+
+);
+
+
+
+
+INSERT INTO MEMBERS VALUES
+
+  ('A', '2021-01-07'),
+
+  ('B', '2021-01-09');
+ 
+ 
+ 
+select * from sales s ;
+select * from members m ;
+select * from menu m ;
+
+
+--1. What is the total amount each customer spent at the restaurant?
+
+select ttt.customer_id,sum(ttt.result) "Total Amount"
+from
+(select tt.customer_id, tt.total_number_of_product * (select price
+									  from menu
+									  where menu.product_id=tt.product_id) "result" 
+					from 
+					(select s.customer_id,s.product_id ,count(*) "total_number_of_product" 
+					from sales s 
+					group by s.customer_id,s.product_id) tt) ttt
+group by ttt.customer_id;
+
+
+--OR 
+select s.customer_id,sum(m.price) 
+from 
+sales s inner join menu m 
+on m.product_id =s.product_id 
+group by s.customer_id ;
+
+--OR
+
+ SELECT  S.CUSTOMER_ID, SUM(M.PRICE) FROM SALES S 
+ JOIN MENU M ON 
+ S.PRODUCT_ID = M.PRODUCT_ID
+ GROUP BY  S.CUSTOMER_ID;
+ 
+
+
+--2. How many days has each customer visited the restaurant?
+
+select * from sales s ;
+select tt.customer_id,count(*) 
+from
+				(select s.customer_id ,s.order_date 
+				from sales s 
+				group by s.customer_id ,s.order_date)tt
+group by tt.customer_id;
+
+--OR
+SELECT S.CUSTOMER_ID, COUNT(DISTINCT(S.ORDER_DATE))
+ FROM SALES S 
+ GROUP BY S.CUSTOMER_ID;
+
+
+--3. What is the most purchased item on the menu
+--   and how many times was it purchased by all customers?
+select * from sales s ;
+select * from menu m ;
+
+
+select * 
+from menu m 
+
+select s.product_id ,count(*) "product_count" 
+		from sales s
+		group by s.product_id 
+		having count(*)=(select max(tt.product_count)
+						 from (select s.product_id,count(*) "product_count" 
+								from sales s
+								group by s.product_id ) tt);
+							
+--OR
+select m.product_name ,count( s.product_id)
+from sales s 
+inner join menu m 
+on m.product_id =s.product_id 
+group by m.product_name
+having count(*)= (select max(tt.product_count)
+						 from (select s.product_id,count(*) "product_count" 
+								from sales s
+								group by s.product_id ) tt);
+							
+--OR
+SELECT M.PRODUCT_NAME, COUNT(*) AS TOTALSALES
+ FROM SALES S 
+ JOIN MENU M ON 
+ S.PRODUCT_ID = M.PRODUCT_ID
+ GROUP BY M.PRODUCT_NAME
+ ORDER BY TOTALSALES DESC LIMIT 1;							
+							
+							
+--4. What is the total items and amount spent for 
+--    each member before they became a member?
+
+select * from sales s ;
+select * from menu m ;
+select * from members m ;
+
+select tttt.customer_id,sum(tttt.product_count) "Total Product",sum(tttt.result) "Total Price"
+from 
+	(select ttt.customer_id,ttt.product_count, ttt.product_count *(select m.price from menu m 
+							   where m.product_id=ttt.product_id ) "result"  
+	from 
+		(select tt.customer_id,tt.product_id,count(*) "product_count"
+		from
+		(select * from  sales s
+				where s.order_date<(select m.join_date 
+								   from members m
+								   where s.customer_id=m.customer_id)) tt 
+		group by tt.customer_id,tt.product_id)ttt) tttt
+	group by tttt.customer_id;					  
+
+
+ --OR
+select ttt.customer_id,sum(ttt.product_count) " Total Product",sum(ttt.result) "Total Price"
+from 
+(select tt.customer_id,tt.product_count,tt.product_count*(select m.price from menu m 
+							   where m.product_id=tt.product_id ) "result"
+from
+(select s.customer_id,s.product_id,count(*) "product_count" 
+from sales s 
+inner join members m 
+on m.customer_id=s.customer_id 
+inner join menu m2
+on m2.product_id =s.product_id 
+where s.order_date < (select m.join_date 
+								   from members m
+								   where s.customer_id=m.customer_id)
+								   group by s.customer_id,s.product_id )tt) ttt
+group by ttt.customer_id;
+
+--OR
+ SELECT S.CUSTOMER_ID, COUNT(*) AS TOTAL_ITEMS_PURCHASED, SUM(PRICE) AS TOTAL_AMT_SPENT FROM SALES S 
+ JOIN MEMBERS M ON 
+ S.CUSTOMER_ID = M.CUSTOMER_ID
+ JOIN MENU ME ON
+ S.PRODUCT_ID = ME.PRODUCT_ID
+ WHERE S.ORDER_DATE < M.JOIN_DATE
+ GROUP BY S.CUSTOMER_ID;
+
+ 
+ -----------------------
+--------qns1-------------------------------------------------------------------------------------------------
+--1. What are the top 5 most well paid employees?
+select concat(e.first_name ,' ', e.last_name),salary  name from employees e order by salary desc limit 5 ;	
+
+-------qns2--------------------------------------------------------------------------------------------------
+--2. Find top 2 employee with highest salary of each department.			
+                                     
+ select  department_id, salary 
+ 							from
+                                (select
+                                    department_id, salary,DENSE_RANK() over ( partition by department_id order by salary desc) as ranking
+                                          from  employees e  ) a
+                                                where a.ranking in(1,2) and department_id is not null;
+                                                
+                                     
+			
+-------qns3--------------------------------------------------------------------------------------------------
+--3. Find top 5 cities where highest number of employee are worked.	
+
+  select 
+  	l.city ,
+  	count(employee_id) employee_number
+  		from 
+  			employees e 
+  				inner join 
+  					departments d on e.department_id =d.department_id 
+  						inner join 	
+  							locations l on l.location_id =d.location_id
+  								group by l.city 
+  									order by count(employee_id) desc
+  										limit 5;
+  
+
+--------qns4---------------------------------------------------------------------------------------------------
+--4. Find top 2 department where Who works in the same department as Clark? (Solution should be from subquery)	
+
+  	select * from employees e;
+  select * from departments d ;
+					
+				
+----------qns5------------------------------------------------------------------------------------------------------------
+				
+--5. Who are the employees that receive more than the average salary of their department? (Solution should be from subquery)		
+	
+ 		select 
+			e.department_id, 
+			concat(e.first_name,' ',e.last_name) name,
+			e.salary
+					from employees e 
+					inner join 
+					(select 
+						department_id ,
+							avg(salary) as avg
+								from
+									employees e2 
+										group by e2.department_id ) as t2		 		
+											on e.department_id=t2.department_id and e.salary > t2.avg order by e.department_id;
+----------------------------
+/*--14
+select customer_id,cust_name,city
+from customer
+right join salesman
+on c.salesman_id=s.salesman_id
+join orders
+on c.customer_id=o.customer_id
+where order_amnt>2000
+and grade<> null
+
+--15
+select cust_name,order_no,date,pruchase_amnt
+from customer
+left join orders
+on c.customer_id=o.customer_id
+
+--16
+select cust_name,city,order_no,order_date,purchase_amnt
+from customers
+full outer join orders 
+on c.customer_id=o.customer_id
+where grade <> null 
+
+--17
+select * From salesman 
+cross join customer
+
+--18
+select * from salesman
+cross join customer
+where salesman.city is not null;
+
+--19
+select * from salesman 
+cross join customer
+where salesperson.city is not null and customer.grade is not null
+
+--20
+select * From 
+customers 
+cross join salesman
+where salesman.city <>customer.city
+and customer.grade <>null
+and salesman.grade <> null;
+
+--21
+select * from company_mast 
+inner join  item_mast 
+where c.com_id=ii.pro_com
+
+--22
+select name,price,comp_name
+from company_mast
+join item_mast
+on item_mast.pro_com=company_mast.com_id;
+
+--23
+select company_name,avg(pro_price) from 
+company_mast
+inner join item_mast
+on company_mast.com_id=item_mast.pro_com
+group by pro_price
+
+--24
+select avg(pro_price),company_name
+from comapny_mast
+inner join item_mast
+on company_mast.com_id=item_mast.pro_com
+having item_mast.pro_price >=350
+group by company_mast.com_name;
+
+
+--25
+select item_mast.pro_name,max(pro_price),company_mast.com_name
+from item_mast
+join company_mast
+on item_mast.com_id=company_mast.com_id
+group by company_mast.com_name;
+
+--26
+select emp_name,dpt_name  from emp_deoartment
+join emp_details
+on emp_department.dpt_code=emp_details.emp_dept
+
+--27
+select fist_name,last_name dept_name,dpt_allotment
+from emp_department 
+join emp_details
+on emp_department.dpt_code=emp_Details.emp_Dept
+
+--28
+select first_name,last_name dpt_alloyment
+from emp_details 
+join emp_details
+on emp_Department.dpt_code=emp_Details.emp_dept
+having emp_department.dpt_allotment >50000
+
+--29
+select dpt_name ,from emp_department
+join emp_Details 
+on emp_department.dpt_code=emp_details.emp_dept
+having count(*) >2
+gropu by emp_department.dpy_name;
+
+-----w3 school exercise: retrive data from tables:
+--1
+select * from salesman
+--2
+select 'this is sql exercise practise and dolution' as string
+--3
+select  3,4,5;
+--4
+select 10 + 15 ;
+--5
+select 10 + 15 - 2 *  5;
+--6
+select name,commission from salesman
+--7
+select order_date,salesman_id,order_number,pruchase_amnt
+from orders
+--8
+select distinct salesman_id from orders
+--9
+select name,city from salesman
+where city='paris'
+--10
+select customer_id,cust_name,city,grade,saleman_id
+from customer 
+where grade=200
+--11
+select ord_no,order_date,purch_amnt
+from orders
+where salesman_id=5001
+--12
+select year,subject,winner from nobel_win
+where year=1970
+--13
+select year,subject,winner from nobel_win
+where year=1970 and subject='literature';
+--14
+select year,subject from nobel_win 
+where winner='dennis gabor'
+--15
+select winner from nobel_win
+where subject='physics' and year>=1950
+--16
+select year,subject,winner,country from nobel_price
+where subject='chemistry' and 
+year>= 1965 and year<=1975
+--17
+select * from nobel_win 
+where winner in ('menachem begin','yitzhak rabin')
+and year>1972
+--18
+select * from nobel_win 
+where winner like 'louis%'
+--19
+select year,subject,winner,country,category
+from nobel_win
+where  (subject='physics' and year=1970)
+union 
+select * From nobel_win 
+where (subject='chemistry' and year=1971)
+--20
+select * from nobel_Win 
+where year =1970 
+and subject not in ('physiology','economics');
+--21
+select * from nobel_win
+where (subject='phsiology' and year<1971)
+union 
+(select * from nobel_win 
+where (subject ='peace'and year>1974));
+--22
+select * from nobel_win
+where winner='johannes georg bednorz';
+--23
+select winner from nobel_win
+where subject not like 'p%'
+order by year desc,winner asc
+--24
+select * from nobel_win
+where year=1970
+order by 
+case when subject in ('economics','chemistry')then 1
+else 0 
+end asc
+subject,winner;
+--25
+select * from item_mast
+where pro_price between 200 and 600
+--26
+select avg(pro_price) from item_mast
+where pro_com=16;
+--27
+select pro_name as 'item name',pro_prices as 'price in rs'
+from item_mast
+--28
+select pro_name,pro_price 
+from item_mast
+where pro_price >=250
+order by product_price desc,product_name
+--29
+select avg(pro_price),company_code
+from item_mast
+group by pro_name;
+--30
+select pro_name,min(pro_price)
+from item_mast
+group by pro_name,pro_price
+--31
+select distict emp_lname
+from emp_details
+--32
+select emp_idno,emp_fname,emp_lname,emp_Dept
+from emp_details
+where emp_lname='snares'
+--33
+select emp_idno,emp_fname,emp_lname,emp_Dept
+from emp_details
+where emp_dept=57;
+
+-----fuctions and group by
+--1
+select sum(purch_amt) from orders
+order by salesman_id;
+--2
+select avg(purch_amt) from orders
+order by salesman_id;
+--3
+select count(distinct salesman_id) from orders
+--4
+select count(customer_id) from customer
+--5
+select count(all grade) from customer;
+--6
+select max(purch_amt) from orders;
+--7
+select min(purch_amnt) from orders;
+--8
+select max(grade) from customer
+group by city;
+--9
+select max(puch_amnt),cust_id
+from orders
+order by customer_id
+--10
+select max(purch_amnt),order_date
+from orders
+group by customer_id,ord_date;
+--11
+select max(purch_amnt),salesperson_id
+from orders
+having ord_Date='2012-08-17'
+group by salesperson_id;
+--12
+select max(purch_amt),customer_id,order_date 
+from orders
+having purch_Amt>2000.00
+group by customer_id;
+--13
+select max(purch_Amnt),customer_id,order_date
+from orders
+group by customer_id,order_date
+having max(purch_amnt) between 2000 and 6000;
+--14
+select max(purch_amnt),customer_id,order_Date
+from orders
+group by customer_id,order_Date
+having max(purch_amnt) in (2000,3000,5760,6000);
+--15
+select max(purch_amnt),customer_id
+from orders
+group by customer_id
+having customer_id between 3002 and 3007
+--16
+select max(puch_amnt),customer_id
+from orders
+where max(purch_Amnt) >1000;
+group by customer_id
+having customer_id between 3002 and 3007
+--17
+select max(purch_Amt),salesoerson_id
+from orders
+group by salesperson_id
+having salesperson_id between 5003 and 5008;
+--18
+select count(order_id)
+from orders
+having ord_Date='2012-08-17';
+--19
+select count(Salesman_id) 
+from salesman
+group by city
+--20
+select count(order_no)
+from orders
+group by order_Date,salesman_id
+--21
+select  avg(product_price) 
+from item_mast
+--22
+select count(pro_id) 
+from item_mast 
+having pro_price >= 350
+--23
+select avg(pro_price),company_id
+from item_mast
+group by pro_com;
+--24
+select sum(dpt_allotment)
+from emp_department 
+--25
+select count(emp_id) ,emp_dept
+from emp_details
+group by emp_dept
+
+-------------------------query on multiple table
+--1
+select customer_name,salesperson_name,salesperson_city
+from salesman,customer
+where salesman.city=customer.city
+--2
+select customer_name,salesperson_name
+from customer,salesman
+where customer.salesman_id=salesman.salesman_id
+--3
+select ord_no,cust_name,customer_id,salesman_id
+from salesman,customer,orders
+where customer.salesman_id=salesman.salesman_id
+and salesman.city<>customer.city
+and order.customer_id=customer.customer_id
+--4
+select order_no,customer_name
+from orders,customer
+where orders.customer_id=customer.customer_id;
+--5
+select cust_name as 'customers',grade as 'Grade'
+from salesman,customer,orders
+where salesman.salesman_id=customer.salesman_id
+and customer.customer_id=orders.customer_id
+and customer.grade is not null
+and salesman.city is not null
+--6
+select cust_name as 'Customer',city as 'city'
+from salesman,customer
+where salesman.commission between 0.12 and 0.14
+and salesman.salesman_id=customer.salesman_id
+--7
+select customer_name,(purch_amnt * commission) as 'Commission%'
+from customers,orders,salesman
+where s.salesman_id=c.salesman_id
+and c.customer_id=o.customer_id
+and customer.grade>=200
+--8
+select customer_id, cust_name, city, grade, 
+salesman_id, ord_no, purch_amt, ord_date, 
+customer_id,salesman_id
+from customer,orders
+where order_date='2012-08-05'
+and c.customer_id=o.customer_id;
+
+------------------------------subqueries
+--1
+select * from orders
+where salesman_id=
+(select salesman_id from salesman where name='paul adam');
+--2
+select * From orders 
+where salesman_id=(
+select salesman_id from salesman where city='london');
+--3
+select * from orders
+where salesman-id=(
+select distinct salesman_id from orders where 
+customer_id=3007);
+--4
+select * from orders where 
+
+------------------------------------------------------------
+
+select * from persons 
+where name like 'a%';
+
+--Create a store procedure that receives the first name of the person table 
+--as input and the last name as output.
+create procedure display
+@firstname varchar(50),
+@last_name varchar(50) output
+as
+begin
+select @lastname=lastname
+from persons
+where firstname=@firstname
+end
+
+/*Create a query to show the account number and customerid from the customer table 
+for the customer without sales orders.*/
+select account_no,customerid
+from customers
+left join orders
+on customer.customer_id=orders.customer_id
+where sales.order_id is null;
+
+/*You have a table with some of the temperatures in Celsius of some patients.
+Create a function or a stored procedure to get the convert Fahrenheit to Celsius.
+Would you use a function or a stored procedure?*/
+create function convert_temp(@temperature(14,8))
+returns int
+as
+begin
+declare @fahreneit decimal(14,8)
+set @fahrenheit=((@temperature *(9.0/5.0))+32)
+return (@fahrenheit)
+end
+
+-- Create a query to show the top 10 customerIDs of users with more Orders.
+select top(10) customersid
+from customers
+
+--movie database
+select movie_name,movie_release_year
+from movie
+
+-- From the following table, write a SQL query to find when the movie 'American Beauty'
+--released. Return movie release year.
+select movie_release_year 
+from movie
+where movie_title='American Beuty';
+
+--From the following table, write a SQL query to find the movie that was released in 1999.
+--Return movie title.
+select movie_title
+from movie
+where release_year=1999;
+
+--From the following table, write a SQL query to find those movies, 
+--which were released before 1998. Return movie title.
+select movie_title
+from movie 
+where release_year<1998;
+
+--From the following tables, write a SQL query to find the name of all reviewers and
+--movies together in a single list.
+select reviewer.rev_name
+from reviewer
+union 
+select movie.mov_title
+from movie
+
+ /*From the following table, write a SQL query to find all reviewers who have 
+ rated seven or more stars to their rating. Return reviewer name.*/
+ select reviewer_name 
+ from reviewer
+ join rating 
+ on reviewer.rev_id=rating.rev_id
+ having rev_stars>=7.00
+
+ /*From the following tables, write a SQL query to find the movies without any rating.
+ Return movie title*/
+ select movie_title
+ from movie
+ join rating
+ on movie.mov_id=rating.rating_id
+ having rev_stars is null;
+
+ /*From the following table, write a SQL query to find the movies with ID 905 or 907
+ or 917. Return movie title. */
+ select mov_title
+ from movie
+ where movie_id in (905, 907, 917);
+ 
+ /*From the following table, write a SQL query to find the movie titles that contain 
+ the word 'Boogie Nights'. Sort the result-set in ascending order by movie year.
+ Return movie ID, movie title and movie release year. */
+ select movie_id,movie_title,relaese_year
+ from movie
+ where mov_title like '%boogie%nights%'
+ order by movie_year;
+
+ /*From the following table, write a SQL query to find those actors with the first
+ name 'Woody' and the last name 'Allen'. Return actor ID.*/
+ select act_id
+ from actor
+ where act_fname='woody' and act_lname='allen';
+
+ /*From the following table, write a SQL query to find the actors who played a role 
+ in the movie 'Annie Hall'. Return all the fields of actor table.*/
+ select act_id,act_fname,act_lanme,act_gender
+ from actor
+ join movie_cast
+ on actor.act_id=movie_cast.act_id
+ join movie
+ on movie_cast.mov_id=movie.mov_id
+ having movie_title='annie hall';
+
+ /*From the following tables, write a SQL query to find the director of a film that 
+ cast a role in 'Eyes Wide Shut'. Return director first name, last name. */
+ select dir_fname,dir_lname
+ from director
+where dir_id in (
+select dir_id from movie_direction where mov_id in (
+select mov_id from movie_cast where role=any(
+select role from movie_cast where mov_id in 
+select mov_id from movie where mov_title='eyes wide shut'))));
+
+/*From the following table, write a SQL query to find those movies that have been 
+released in countries other than the United Kingdom. Return movie title, movie year, 
+movie time, and date of release, releasing country.*/
+select mov_title,movie_year,movie_time,date_of_release,relaesing_country
+from movie where 
+mov_rel_country except(select mov_id from movie where mov_rel_year='uk');
+
+/*From the following tables, write a SQL query to find for movies whose reviewer is 
+unknown. Return movie title, year, release date, director first name, last name, 
+actor first name, last name.*/
+SELECT mov_title, mov_year, mov_dt_rel, dir_fname, dir_lname, 
+       act_fname, act_lname
+	   FROM movie a, movie_direction b, director c, 
+                rating d, reviewer e, actor f, movie_cast g
+	   WHERE a.mov_id=b.mov_id
+AND  b.dir_id=c.dir_id 
+ AND a.mov_id=d.mov_id 
+  AND  d.rev_id=e.rev_id 
+   AND  a.mov_id=g.mov_id 
+    AND g.act_id=f.act_id 
+	 AND e.rev_name IS NULL;
+
+/*From the following tables, write a SQL query to find those movies directed by the 
+director whose first name is Woddy and last name is Allen. Return movie title.*/
+select mov_title
+from movie m,director d,movie_direction md
+where m.mov_id=md.mov_id
+and md.dir_id=d.dir_id
+and d.dir_fname='woody'
+and d.lname='allen';
+
+/*From the following tables, write a SQL query to determine those years in which there 
+was at least one movie that received a rating of at least three stars. Sort the result-set
+in ascending order by movie year. Return movie year.*/
+select distinct movie_year from movie
+where mov_id in (
+select mov_id from ratimg 
+where rev_stars >3)
+order by mov_year;
+
+/* From the following table, write a SQL query to search for movies that do not have 
+any ratings. Return movie title*/
+select movie_title
+from movie where 
+mov_id not in (
+select mov_id from rating where 
+rev_star is null)
+
+/*From the following table, write a SQL query to find those reviewers who have not given 
+a rating to certain films. Return reviewer name. */
+select rev_name from reviewer
+where rev_id in  (select rev_id from rating where rev_stars is null);
+
+/*From the following tables, write a SQL query to find movies that have been reviewed
+by a reviewer and received a rating. Sort the result-set in ascending order by 
+reviewer name, movie title, review Stars. Return reviewer name, movie title, review Stars. 
+*/
+SELECT rev_name, mov_title, rev_stars 
+ FROM reviewer, rating, movie 
+  WHERE reviewer.rev_id=rating.rev_id 
+   AND movie.mov_id=rating.mov_id 
+     AND reviewer.rev_name IS NOT NULL 
+       AND rating.rev_stars IS NOT NULL
+ORDER BY rev_name, mov_title, rev_stars;
+
+/*From the following tables, write a SQL query to find those movies, which have received
+highest number of stars. Group the result set on movie title and sorts the result-set in
+ascending order by movie title. Return movie title and maximum number of review stars.*/
+SELECT mov_title, MAX(rev_stars)
+FROM movie, rating 
+WHERE movie.mov_id=rating.mov_id 
+AND rating.rev_stars IS NOT NULL
+GROUP BY  mov_title
+ORDER BY mov_title;
+
+/* From the following tables, write a SQL query to find all reviewers who rated the 
+movie 'American Beauty'. Return reviewer name.*/
+select reviewer_name from reviewer re,rating ra,movie m
+where re.rev_id=ra.rev_id
+and ra.mov_id=m.mov_id
+and movie.mov_title='american beauty';
+
+/*From the following table, write a SQL query to find the movies that have not been 
+reviewed by any reviewer body other than 'Paul Monks'. Return movie title*/
+select movie_title 
+from movie,rating,reviewer
+where reviewer.rev_id=rating.rev_id
+and rating.mov_id=movie.mov_id
+and reviewer.rev_name <>'paul monks';
+
+/*From the following table, write a SQL query to find the movies with the lowest ratings.
+Return reviewer name, movie title, and number of stars for those movies.*/
+SELECT reviewer.rev_name, movie.mov_title, rating.rev_stars
+FROM reviewer, movie, rating
+WHERE rating.rev_stars = (
+SELECT MIN(rating.rev_stars)
+FROM rating
+)
+AND rating.rev_id = reviewer.rev_id
+AND rating.mov_id = movie.mov_id;
+
+/*From the following tables, write a SQL query to find the movies directed by 
+'James Cameron'. Return movie title.*/
+select movie_title from movie,movie_direction,director
+where movie.movie_id=movie_derection.mov_id
+and movie_direction.dir_id=director.dir_id
+and dir_fname='james' and dir_lname='cameron';
+
+/*Write a query in SQL to find the movies in which one or more actors appeared in more
+than one film.*/
+select 
+---------------------------soccer database
+--From the following table, write a SQL query to count the number of venues for EURO
+--cup 2016. Return number of venues.
+select count(venue_id) as no_of venue
+from soccer_venue
+
+
+--From the following table, write a SQL query to count the number of countries that 
+--participated in the 2016-EURO Cup.
+select count(distinct team_id) 
+from player_mast
+
+
+--From the following table, write a SQL query to find the number of goals scored 
+--within normal play during the EURO cup 2016. 
+select count(goal_id) from goal_details
+
+
+--From the following table, write a SQL query to find the number of matches that 
+--ended with a result select 
+select count(match_no) 
+from match_mast
+where results='WIN'
+
+--From the following table, write a SQL query to find the number of matches that ended 
+--in draws
+select count(*)
+from match_mast
+where results='DRAW'
+
+--From the following table, write a SQL query to find out when the Football EURO cup 2016
+--will begin.
+select min(play_date) 
+from match_mast
+or
+select match_no 
+from match_mast 
+where match_no=1;
+
+--From the following table, write a SQL query to find the number of self-goals scored
+--during the 2016 European Championship
+select count(goal_type) from goal_Details
+where goal_type='o';
+
+--From the following table, write a SQL query to count the number of matches ended 
+--with a results in-group stage
+select count(*) from match_mast
+where play_stage='g'
+and results='win';
+
+--From the following table, write a SQL query to find the number of matches that resulted
+--in a penalty shootout.
+select count(distinct match_no) 
+from penalty_shootout
+where score_goal='y';
+
+-- From the following table, write a SQL query to find number of matches decided by 
+--penalties in the Round 16
+SELECT COUNT(*) 
+FROM match_mast 
+WHERE decided_by='P' AND play_stage='R';
+
+--From the following table, write a SQL query to find the number of goals scored in 
+--every match within a normal play schedule. Sort the result-set on match number.
+--Return match number, number of goal scored
+select match_no,count(goal_id) as number_of_goal_scored
+from goal_details
+group by match_no
+order by match_no;
+
+
+--From the following table, write a SQL query to find the matches in which no stoppage 
+--time was added during the first half of play. Return match no, date of play, and goal
+--scored.
+select match_no,
+--------------------------------challenge task in sql 
+-- From the following tables, write a SQL query to find the information on each
+--salesperson of ABC Company. Return name, city, country and state of each salesperson.
+select name,city,country,state 
+from salesperson
+join address
+on s.salespersion_id=address.salesperson_id
+
+--- From the following table, write a SQL query to find the third highest sale. 
+--Return sale amount.
+select sale_amt
+from salesmast
+where 
+
+CREATE TABLE  salemast(sale_id int, employee_id int, sale_date date, sale_amt int);
+INSERT INTO salemast (sale_id, employee_id, sale_date, sale_amt) VALUES ('1', '1000', '2012-03-08', 4500);
+INSERT INTO salemast (sale_id, employee_id, sale_date, sale_amt) VALUES ('2', '1001', '2012-03-09', 5500);
+INSERT INTO salemast (sale_id, employee_id, sale_date, sale_amt) VALUES ('3', '1003', '2012-04-10', 3500); 
+INSERT INTO salemast (sale_id, employee_id, sale_date, sale_amt) VALUES ('3', '1003', '2012-04-10', 2500);
+
+SELECT MAX(sale_amt) AS thirdHighestSale
+FROM salemast
+WHERE sale_amt<(SELECT MAX(sale_amt) FROM salemast where sale_amt<(select 
+max(sale_amt) from salemast));
+
+SELECT TOP 1 sale_amt
+FROM (
+    SELECT DISTINCT TOP 3 sale_amt
+    FROM salemast
+    ORDER BY sale_amt DESC
+) AS ThirdHighestSalary
+ORDER BY sale_amt ASC;
+
+-- From the following table, write a SQL query to find the Nth highest sale.
+--Return sale amount.
+SELECT TOP 1 sale_amt
+FROM (
+    SELECT DISTINCT TOP 3 sale_amt
+    FROM salemast
+    ORDER BY sale_amt DESC
+) AS NthHighestSalary
+ORDER BY sale_amt ASC;
+
+/*From the following table, write a SQL query to find the marks, which appear at least 
+thrice one after another without interruption. Return the number*/
+CREATE TABLE logs (student_id int, marks int);
+INSERT INTO logs (student_id, marks) VALUES ('101', '83');
+INSERT INTO logs (student_id, marks) VALUES ('102', '79');
+INSERT INTO logs (student_id, marks) VALUES ('103', '83');
+INSERT INTO logs (student_id, marks) VALUES ('104', '83');
+INSERT INTO logs (student_id, marks) VALUES ('105', '83');
+INSERT INTO logs (student_id, marks) VALUES ('106', '79');
+INSERT INTO logs (student_id, marks) VALUES ('107', '79');
+INSERT INTO logs (student_id, marks) VALUES ('108', '83');
+
+
+SELECT  distinct marks
+FROM (
+  SELECT marks, RANK() OVER (ORDER BY marks) AS rank_no
+  FROM logs
+) ranked_logs
+WHERE rank_no > 3;
+
+/*From the following table, write a SQL query to find all the duplicate emails
+(no upper case letters) of the employees. Return email id*/
+SELECT  distinct email_id
+FROM (
+  SELECT email_id, RANK() OVER (ORDER BY email_id) AS rank_no
+  FROM employees
+) ranked_logs
+WHERE rank_no > 1;
+or
+
+select email_id
+from employees
+group by email_id
+having count(email_id) >1;
+
+/*From the following tables, write a SQL query to find those customers who never 
+ordered anything. Return customer name*/
+select customer_name 
+from customers left join orders
+on c.customer_id=o.customer_id
+and order.customer_id is null
+
+/*From the following table, write a SQL query to remove all the duplicate emails of 
+employees keeping the unique email with the lowest employee id. Return employee id
+and unique emails.*/
+DELETE e1 FROM employees e1,  employees e2
+WHERE
+    e1.email_id = e2.email_id AND e1.employee_id > e2.employee_id;
+
+/*From the following table, write a SQL query to find all dates' city ID with higher
+pollution compared to its previous dates (yesterday). Return city ID, date and pollution
+*/
+--------
+
+/*A salesperson is a person whose job is to sell products or services.
+From the following tables, write a SQL query to find the top 10 salesperson that 
+have made highest sale. Return their names and total sale amount.*/
+select top(10) salesman_name, sum(sales_Amount)as total_Sale from salesman a
+join sales b 
+on a.salesman_id=b.salesman_id
+ group by salesman_name
+ order by total_Sale desc 
+
+/*An active customer is simply someone who has bought company's product once before and
+has returned to make another purchase within 10 days.
+From the following table, write a SQL query to identify the active customers. Show the
+list of customer IDs of active customers.*/
+SELECT DISTINCT(a.customer_id) FROM orders a
+JOIN orders b
+ON a.customer_id = b.customer_id AND a.order_id != b.order_id
+WHERE b.order_date - a.order_date  BETWEEN 0 AND 3
+ORDER BY customer_id;
+
+/*From the following table, write a SQL query to convert negative numbers to
+positive and vice verse. Return the number.*/
+select arno,pos_neg_val,abs(pos_neg_val)as converted_signed_value
+from tableforetest
+
+/*From the following table, write a SQL query to find the century of a given date. 
+Return the century.*/
+
+-----hospital database
+/* From the following table, write a SQL query to find out which nurses have not yet been
+registered. Return all the fields of nurse table.*/
+select * from nurse 
+where registered='f';
+
+/* From the following table, write a SQL query to identify the nurses in charge of each
+department. Return nursename as “name”, Position as “Position”.*/
+select name,position 
+from nurse
+where position='head nurse';
+
+/*From the following tables, write a SQL query to identify the physicians who are the 
+department heads. Return Department name as “Department” and Physician name as “Physician”
+*/
+select d.name as department,p.name
+from physician,department
+where d.head=p.employeeid;
+
+/*From the following table, write a SQL query to count the number of patients who 
+scheduled an appointment with at least one physician. Return count as "Number of patients
+taken at least one appointment"*/
+select count(distinct patient)from appoitnment
+
+/*From the following table, write a SQL query to locate the floor and block where room 
+number 212 is located. Return block floor as "Floor" and block code as "Block".*/
+select blockfloor as floor,blockcode as block
+from room
+where roomnumber=212;
+
+/* From the following table, write a SQL query to count the number available rooms. 
+Return count as "Number of available rooms".*/
+select count(unavailable) as 'number of available rooms'
+from room
+where unavailable='false';
+
+/*From the following table, write a SQL query to count the number of unavailable rooms. 
+Return count as "Number of unavailable rooms". */
+select count(*)  as 'number of unavailable rooms'
+from room 
+where unavailable='true';
+
+/*From the following tables, write a SQL query to identify the physician and the 
+department with which he or she is affiliated. Return Physician name as "Physician", and
+department name as "Department"*/
+select p.name as 'physician',d.name as 'department'
+from physician p ,department d,affiliated_with a
+where p.employeeid=d.head
+and d.head=a.physician
+
+/*From the following tables, write a SQL query to find those physicians who have
+received special training. Return Physician name as “Physician”, treatment procedure 
+name as "Treatment".*/
+SELECT p.name AS "Physician",
+c.name AS "Treatment"
+FROM physician p,
+     PROCEDURE c,
+trained_in t
+WHERE t.physician=p.employeeid
+  AND t.treatment=c.code;
+
+/*From the following tables, write a SQL query to find those physicians who are yet to 
+be affiliated. Return Physician name as "Physician", Position, and department as
+"Department".*/
+select p.name as 'physician',postion,d.department as 'department'
+from physician p,affiliated_with a
+where p.employeeid=a.physician
+and a.department=d.departmentid
+and primaryaffiliation='false';
+
+/*From the following tables, write a SQL query to find the patients with their physicians
+by whom they received preliminary treatment. Return Patient name as "Patient", address as
+"Address" and Physician name as "Physician".*/
+select p.name as patient,ph.name as physician,p.address as address
+from patient,physician
+where p.pcp=ph.employeeid;
+
+/*From the following tables, write a SQL query to identify the patients and the number of
+physicians with whom they have scheduled appointments. Return Patient name as "Patient", 
+number of Physicians as "Appointment for No. of Physicians".*/
+select p.name as patient,count(physician) as 'appoitment for no. of physician'
+from appoitment,patient
+where a.patient=p.ssn
+group by p.name
+having count(t,patient)>=1;
+
+/* From the following tables, write a SQL query to count the number of unique patients 
+who have been scheduled for examination room 'C'. Return unique patients as "No. of
+patients got appointment for room C".*/
+select count(distinct patient)as 'no of patients got appoitment for romm c'
+from appointment 
+where examinationroom='c';
+
+/*From the following tables, write a SQL query to find the names of the patients and the
+room number where they need to be treated. Return patient name as "Patient", 
+examination room as "Room No.", and starting date time as Date "Date and Time of
+appointment".*/
+select p.name as patient ,a.examinationroom as 'room no',start_dt_time as
+'date and time of appoitnment'
+from patient p ,appointment a
+where p.ssn=a.patient
+
+/*From the following tables, write a SQL query to identify the nurses and the room in
+which they will assist the physicians. Return Nurse Name as "Name of the Nurse" and
+examination room as "Room No."*/
+select 
+
+
+--------------------------
+
+create table employ (
+id int primary key, name varchar(50), age int, address varchar(50), salary int);
+
+insert into employ values (1,'susmita',23,'samakhusi',5000);
+select * from employ;
+
+--inserting new row using proc
+create  proc employtry (@id int,@name varchar(50),@age int ,@address varchar(50),@salary int )
+as
+begin
+insert into employ(id,name,age,address,salary)
+values (@id,@name,@age,@address,@salary)
+end
+
+exec employtry 4,'samima',23,'mahepi',6000
+
+
+
+--updating using proc 
+
+alter proc updateemploy (@id int,@name varchar(50),@age int ,@address varchar(50),@salary int )
+as
+begin
+update employ 
+set age=@age,salary=@salary
+where id=@id
+end
+exec updateemploy 4,'samima',25,'mahepi',8000
+
+--deleting using proc 
+create proc deleteemploy (@id int,@name varchar(50),@age int ,@address varchar(50),@salary int )
+as
+begin
+delete from employ
+where id=@id
+end
+exec deleteemploy 4,'samima',25,'mahepi',8000
+
+
+--overall crud operation using proc
+create proc allproc (@id int, @name varchar(50), @age int, @address varchar(50), @salary int, @flag varchar(1))
+as
+begin
+if @flag ='s'
+begin 
+ select id,name,age,address,salary from employ;
+ where vendor 
+end
+
+-----------------------------------
+CREATE TABLE Product_Sales(    
+    Emp_Name VARCHAR(45) NOT NULL,    
+    Year INT NOT NULL,  
+    Country VARCHAR(45) NOT NULL,    
+    Prod_name VARCHAR(45) NOT NULL,    
+    Sales DECIMAL(12,2) NOT NULL,    
+    PRIMARY KEY(Emp_Name, Year)    
+);   
+
+INSERT INTO Product_Sales(Emp_Name, Year, Country, Prod_name, Sales)    
+VALUES('Mike Johnson', 2017, 'Britain', 'Laptop', 10000),    
+('Mike Johnson', 2018, 'Britain', 'Laptop', 15000),    
+('Mike Johnson', 2019, 'Britain', 'TV', 20000),    
+('Mary Greenspan', 2017, 'Australia', 'Computer', 15000),    
+('Mary Greenspan', 2018, 'Australia', 'Computer', 10000),    
+('Mary Greenspan', 2019, 'Australia', 'TV', 20000),    
+('Nancy Jackson', 2017, 'Canada', 'Mobile', 20000),    
+('Nancy Jackson', 2018, 'Canada', 'Calculator', 1500),    
+('Nancy Jackson', 2019, 'Canada', 'Mobile', 25000);   
+
+
+SELECT Prod_name, SUM(Sales) AS total_amount  
+FROM Product_Sales GROUP BY Prod_name; 
+
+SELECT Emp_Name, Year, Country, Prod_name, Sales, SUM(Sales)   
+OVER(PARTITION BY Country) as grand_total   
+FROM Product_Sales;  
+
+SELECT Emp_Name, Year, Country, Prod_name, Sales, sum(Sales)   
+OVER(PARTITION BY Country) as avg_sales_amount   
+FROM Product_Sales; 
+
+SELECT Emp_Name, Year, Country, Prod_name, Sales, sum(Sales)   
+OVER(PARTITION BY Prod_name) as avg_sales_amount   
+FROM Product_Sales; 
+
+select Emp_name, year,country,prod_name,sales,min(sales)
+over (partition by country) as min_Sales_amount
+from product_Sales;
+
+select emp_name,year,country,prod_name,sales,max(Sales)
+over (partition by country) as max_sales_amount
+from product_Sales;
+
+select emp_name,year,country,prod_name,sales,count(Sales)
+over (partition by country) as total
+from product_sales;
+
+SELECT Year, Prod_name, Country, Sales,       
+LEAD(Sales,1) OVER (PARTITION BY Year ORDER BY Country) AS Next_Sale      
+FROM Product_Sales;    
+
+
+
+ select invoiceid,vendorid,invoicetotal,invoiceduedate, max(invoicetotal)
+  over (partition by invoiceduedate) as max_total from invoices; 
+
+ 
+  with all_data as (select invoiceid,vendorid,invoicetotal,invoiceduedate,row_number() over (order by invoiceduedate)as rankbvalue from invoices)
+
+
+ -- where row_number <=100;
+
+  select invoiceid,vendorid,invoicetotal,invoiceduedate,lead(invoicetotal,1) 
+  over (partition by invoicetotal order by invoiceduedate)as prev_value
+  from invoices;
+
+
+  (select invoiceid,vendorid,invoicetotal,invoiceduedate,row_number() over (order by invoiceduedate)as rankvalue from invoices)
+  
+ WITH CTE AS (
+   SELECT invoiceid,vendorid,invoicetotal,paymenttotal, ROW_NUMBER() OVER (ORDER BY invoiceid DESC) AS RowNum
+   FROM invoices
+)
+SELECT *
+FROM CTE
+WHERE RowNum >100
+
+select invoiceid,vendorid,invoicetotal,paymenttotal
+from invoices where paymenttotal
+in 
+(select vendorid from invoices where paymenttotal>1000);
+
+
+select Emp_Name,country,prod_name,sales,year,
+  case year 
+  when '2017' then 'year is 2017'
+  when '2018' then 'year is 2018'
+  when '2019' then 'year is 2019'
+  end as descr
+  from Product_Sales;
+
+  CREATE TABLE Student (      
+  id int PRIMARY KEY IDENTITY,     
+  admission_no varchar(45) NOT NULL,  
+  first_name varchar(45) NOT NULL,      
+  last_name varchar(45) NOT NULL,  
+  age int,  
+  city varchar(25) NOT NULL      
+);    
+  
+CREATE TABLE Fee (   
+  admission_no varchar(45) NOT NULL,  
+  course varchar(45) NOT NULL,      
+  amount_paid int,    
+);  
+
+INSERT INTO Student (admission_no, first_name, last_name, age, city)       
+VALUES (3354,'Luisa', 'Evans', 13, 'Texas'),       
+(2135, 'Paul', 'Ward', 15, 'Alaska'),       
+(4321, 'Peter', 'Bennett', 14, 'California'),    
+(4213,'Carlos', 'Patterson', 17, 'New York'),       
+(5112, 'Rose', 'Huges', 16, 'Florida'),  
+(6113, 'Marielia', 'Simmons', 15, 'Arizona'),    
+(7555,'Antonio', 'Butler', 14, 'New York'),       
+(8345, 'Diego', 'Cox', 13, 'California');  
+  
+  
+INSERT INTO Fee (admission_no, course, amount_paid)       
+VALUES (3354,'Java', 20000),       
+(7555, 'Android', 22000),       
+(4321, 'Python', 18000),    
+(8345,'SQL', 15000),       
+(5112, 'Machine Learning', 30000);  
+
+
+
+
+select s.admission_no,first_name,last_name,course,amount_paid from student s
+inner join fee f
+on  s.admission_no=f.admission_no
+
+
+select * from student
+select * from fee
+
+select s1.id,s1.admission_no,s1.first_name,s1.last_name,s1.city from student s1 , student s2
+where s1.id<>s2.id
+and s1.city=s2.city
+
+select s.admission_no,first_name,last_name,course,amount_paid from student s
+left outer join fee f
+on s.admission_no=f.admission_no
+where f.admission_no is null
+
+
+----------------------------
+hemanta dai tasks
+create table trann (
+id int,
+transaction_date date,
+amount varchar(20));
+drop table trann;
+insert into trann values(
+1001,'2021-07-15','2000CR'),
+(1001,'2021-07-15','3000CR'),
+(1001,'2021-07-15','2000DR'),
+(1005,'2021-07-15','11550DR'),
+(1005,'2021-07-15','23650CR');
+---------------
+SELECT id,
+       SUM(CASE WHEN RIGHT(amount, 2) = 'CR' THEN CAST(LEFT(amount, LEN(amount) - 2) AS INT) ELSE -CAST(LEFT(amount, LEN(amount) - 2) AS INT) END) AS credit_debit_diff
+FROM trann
+GROUP BY id;
+
+----------------------------
+create table info(
+id int,
+name varchar(15),
+amt float(20)
+);
+
+insert into info values(
+45,'tshirt',400.00),
+(45,'tshirt',-250.00),
+(45,'tshirt',-100.00),
+(45,'tshirt',50.00),
+(89,'shoes',1000.00),
+(89,'shoes',3500.00),
+(89,'shoes',-3500.00);
+
+SELECT id, 
+       name, 
+       COUNT(name) AS total_entries, 
+       SUM(CASE WHEN amt > 0 THEN amt ELSE 0 END) AS debit_amt, 
+       SUM(CASE WHEN amt < 0 THEN amt ELSE 0 END) AS credit_amt 
+FROM info 
+GROUP BY id, name;
+------------------------
+create table try(
+id int,
+student varchar(20)
+);
+insert into try values(1,'Abbot'),
+(2,'Doris'),
+(3,'Emerson'),
+(4,'Green'),
+(5,'Jeames');
+
+
+select student,row_number() over (partition by pair_num order by student desc)tt from(
+  SELECT student, 
+         ROW_NUMBER() OVER (ORDER BY student asc) AS row_num, 
+         CEILING(ROW_NUMBER() OVER (ORDER BY student ASC) / 2.0) AS pair_num
+		  From try)As t 
+-----------------------or		  
+
+		  select student ,ROW_NUMBER() over(partition by t.NEW_NO1 order by student desc) rn
+from (SELECT *,T.RN%2 NEW_NO,(T.RN%2)+t.rn NEW_NO1
+FROM 
+(
+SELECT *,ROW_NUMBER() OVER(PARTITION BY '' ORDER BY ID) RN FROM try
+) AS T
+) as t
+
+select name,comment 
+from students s
+join commnets c
+on s.id=c.id
+order by student.name asc;
+
+----------------------------------------
+santosh dai tasks
+/*SELECT COUNT(*) AS NumColumns, COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = 'YourSchemaName'
+GROUP BY COLUMN_NAME 
+HAVING COUNT(*) > 1;*/
+-------------------master 
+create table addresstype(
+id int,
+address_type varchar(20),
+address_name varchar(20))
+
+insert into addresstype values(1,'birth','kathmandu'),
+(1,'permanent','pokhara'),
+(2,'birth','bhaktapur'),
+(2,'permanent','lalitput')
+
+
+select * from 
+(select id,address_name as 'address_birth'  from 
+addresstype where address_type='birth')tt
+inner join  
+(select id,address_name as 'address_permanent'
+from addresstype where address_type='permanent')ttt
+on tt.id=ttt.id;
+
+
+select 
+id,
+max(case when address_type = 'permanent' then address_name end) address_birth,
+max(case when address_type= 'birth' then address_name end) address_permanent
+from addresstype
+group by id
+
+
+drop table if exists employee
+create table employee(
+id int,
+name varchar(25),
+username varchar(25),
+password varchar(25)
+)
+
+drop table if exists login
+create table login(
+id int,
+username varchar(25),
+password varchar(25)
+)
+
+insert into employee values
+--(1,'abc','123','123'),
+--(2,'def','456','123'),
+--(3,'ghi','789','123'),
+(5,'mno','021','null')
+
+insert into login values
+(101,'abc',null),
+(102,'def',null),
+(103,'ghi',null),
+(105,'mno',null)
+select * from employee
+select * From login
+
+UPDATE login
+SET password = employee.password
+from login
+join employee
+on employee.name = login.username;
+
+-------------------------------
+drop table login
+UPDATE login 
+SET password = 'abcd'
+FROM login
+join employee
+on employee.name = login.username
+AND employee.password='null';
+
+-----------------------------------------------
+select * from employee
+select * from login
+
+update login 
+set password = COALESCE(l.password,'abcde')
+
+--select case when l.password = 'null' then 'abcde' else e.password end
+--or
+--select COALESCE(l.password,'abcde')
+from login l
+join employee e on l.username = e.name
+where l.username= e.name
+
+select * from login
+
+select
+case when e.password ='null' then 'abcde' else e.password end
+from employee e
+------------------------------------------------------
+create table detail(
+id int,
+name varchar(10),
+salary int)
+
+insert into detail
+values (101,'santosh',500),
+       (102,'umesh',1000),
+	   (103,'bibek',800),
+       (104,'susmita',null),
+	   (105,'sapana',600),
+	   (106,'tapraj',400)
+
+SELECT AVG(ISNULL(salary, 0)) AS avg_salary
+FROM detail
+
+------------------------------
+create function convert_date(
+  select * from Date_Table
+
+create or alter function convert_date()
+returns varchar(10)
+as
+return 
+(
+SELECT Eng_Date, Convert(nep_date) AS NepaliDate
+FROM date_table
+
+);
+go
+
+
+
+create or alter PROCEDURE idk (@username VARCHAR(25), @password VARCHAR(25))
+AS
+BEGIN 
+    DECLARE @output VARCHAR(50)
+
+    IF EXISTS (SELECT * FROM login WHERE username = @username AND password = @password)
+        SET @output = 'Successfully logged in'
+    ELSE
+        SET @output = 'Invalid username or password'
+
+    SELECT @output AS login_status
+	 
+END   
+select * from login
+exec idk 'abc', '123' 
+
+----hospital -->date_table
+-------------------------convert nepali date to english
+alter FUNCTION dbo.convert_date(@NEP_DATE nvarchar(50))
+RETURNS nvarchar(50)
+AS
+BEGIN
+    DECLARE @ENG_DATE nvarchar(50)
+    SELECT   @ENG_DATE = ENG_DATE FROM dbo.Date_Table WHERE NEP_DATE = @NEP_DATE
+    RETURN @ENG_DATE
+END
+
+-----null case 
+create or ALTER FUNCTION dbo.convert_date(@NEP_DATE nvarchar(50))
+RETURNS nvarchar(50)
+AS
+BEGIN
+    DECLARE @ENG_DATE nvarchar(50)
+    SELECT @ENG_DATE = ENG_DATE FROM dbo.Date_Table WHERE NEP_DATE = @NEP_DATE
+    IF @ENG_DATE IS NULL
+        SET @ENG_DATE = '____/__/__'
+    RETURN @ENG_DATE
+END
+
+
+SELECT dbo.convert_date('1976/09/17')
+
+
+select * from Date_Table
+
+---------------------------------
+create table newdetails(
+id int,
+name varchar(10),
+amount int
+);
+drop table newdetails
+insert into newdetails values(
+1,'a',200),
+(2,'a',-400),
+(3,'b',600),
+(4,'b',100),
+(5,'c',50),
+(6,'c',-100)
+
+select * from (
+select sum(amount)as sumamount from newdetails
+group by name;
+  SELECT id, name, SUM(amount) as sumamount
+  FROM newdetails
+  GROUP BY name,id
+  ---------------------------------------------
+ SELECT name, min(Amount) as lowestamount, max(amount) as highestamount,
+  CASE 
+    WHEN sum(amount) > 0 THEN sum(amount) ELSE 0 END AS principle, 
+  CASE 
+    WHEN sum(amount) < 0 THEN sum(amount) ELSE 0 END AS loanamount
+    FROM newdetails 
+	group by name
+	order by name;
+
+ select abs(-10)
+ select SQUARE(5)
+ select year(2023-03-14)
+ select DATEADD(day,10,getdate())
+
+ select * from doctor
+
+ select name, left(name,charindex(' ',name) -1) as firstname,
+
+ right(name,len(name)-charindex(' ',name))as lastname
+ from doctor;
+
+
+ -- Select the department name of the company which is assigned to the employee whose employee id is grater 103.
+ select department_name from emp_dept where deptid in (select department from employee where emp_id>103)
+
+ --Select the name of the employee who is working under Abhishek.
+ select emp_name from employee where empidhead in( select empid from employee where name='abhishek')
+
+ --Select the name of the employee who is department head of HR.
+select empname from employee where empid =(select depthead from empdept where deptname='hr')
+
+--  Select the name of the employee head who is permanent.
+select empname from employee where empid in(select empheadid from employee) and empid in(select empid from empsalary where ispermanent='yes')
+
+--name and email of employee who is not permanent 
+select name,email from employee where empid in (select empid from empsalary where ispermanent='no')
+
+--jonas(manager)
+select 
+
+CREATE or alter FUNCTION dbo.Split (@emailing NVARCHAR(MAX))
+RETURNS TABLE
+AS
+RETURN (
+  SELECT 
+    CAST(LEFT(@emailing, PATINDEX('%[^0-9]%', @emailing+'t')-1) AS NVARCHAR(MAX)) AS CharacterValue,
+    CAST(RIGHT(@emailing, LEN(@emailing) - PATINDEX('%[^0-9]%', @emailing+'t')+1) AS NVARCHAR(MAX)) AS NumericValue
+)
+
+select ('susmita123@gamil.com') from dbo.split;
+
+
+
+select * from doctor
+
+select tt.firstname,tt.lastname,
+left(tt.lastname,charindex(' ',tt.lastname) -1)
+--,left(tt.lastname,charindex(' ', tt.lastname)-1)
+--,right(tt.lastname,charindex(' ',tt.lastname))lastname 
+from (
+ select name, left(name,charindex(' ',name) -1) as firstname,
+
+ right(name,len(name)-charindex(' ',name))as lastname
+ from doctor)tt
+ 
+
+ select tt.firstname,tt.middlelastname,
+ SUBSTRING(tt.middlelastname,1,charindex(' ',tt.middlelastname)-1)  middlename,
+  substring(tt.middlelastname,charindex(' ',tt.middlelastname),len(tt.middlelastname)+1) lastname
+ from (
+ select name,SUBSTRING(name,1,charindex(' ',name)-1)  firstname,
+ substring(name,charindex(' ',name),len(name)+1) middlelastname
+ from doctor) tt
+
+ select name,  
+   parsename(replace(name, ' ', '.'), 1) as FirstName,  
+   parsename(replace(name, ' ', '.'), 2) as middle,  
+   parsename(replace(name, ' ', '.'), 3) as last   
+ from doctor
+
+
+ create table try(
+ id int,
+ name varchar(20))
+
+ insert into try values 
+ (1,'prasna kumari lohani'),
+ (2,'ram kumar lohani')
+
+
+
+ 
+ select substring(name,CHARINDEX(' ',name)+1,len(name)-CHARINDEX(' ',name))from try
+ --update try set name='asha devi khadka rai' where id=1
+ select CHARINDEX(' ',name,CHARINDEX(' ',name)+1) from try
+
+ Select Ltrim(SubString(name,1,Isnull(Nullif(CHARINDEX(' ',name),0),1000))) As FirstName
+,Ltrim(SUBSTRING(name,CharIndex(' ',name),
+CAse When (CHARINDEX(' ',name,CHARINDEX(' ',name)+1)-CHARINDEX(' ',name))<=0 then 0 
+else CHARINDEX(' ',name,CHARINDEX(' ',name)+1)-CHARINDEX(' ',name) end )
+) as MiddleName
+,Ltrim(SUBSTRING(name,Isnull(Nullif(CHARINDEX(' ',name,Charindex(' ',name)+1),0),CHARINDEX(' ',name)),
+Case when Charindex(' ',name)=0 then 0 else LEN(name) end)
+) as LastName
+ from try 
+
+ insert into try values (3,'asha khadka')
+
+ Select Ltrim(SubString(name,1,Isnull(Nullif(CHARINDEX(' ',name),0),1000))) As FirstName
+,Ltrim(SUBSTRING(name,CharIndex(' ',name),
+CAse When (CHARINDEX(' ',name,CHARINDEX(' ',name)+1)-CHARINDEX(' ',name))<=0 then 0 
+else len(name)-CHARINDEX(' ',name)- charindex(' ',reverse(name),1)+1 end )
+) as MiddleName
+,substring(name,len(name)-charindex(' ',reverse(name),1)+2,charindex(' ',reverse(name),1)) LastName
+,name from try
+
+Select Ltrim(SubString(name,1,Isnull(Nullif(CHARINDEX(' ',name),0),1000))) As FirstName
+,Ltrim(SUBSTRING(name,CharIndex(' ',name),
+CAse When (CHARINDEX(' ',name,CHARINDEX(' ',name)+1)-CHARINDEX(' ',name))<=0 then 0 
+else len(name)-CHARINDEX(' ',name)- charindex(' ',reverse(name),1)+1 end )
+) as MiddleName
+,substring(name,len(name)-charindex(' ',reverse(name),1)+2,charindex(' ',reverse(name),1)) LastName
+,name from try
+
+create table email(
+id int,
+email varchar(100))
+
+insert into email values(
+1,'susmita10@gmail.com')
+
+
+
+CREATE TABLE SampleTable (
+    id INT IDENTITY(1,1),
+    email VARCHAR(50)
+)
+
+-- Insert some sample data
+INSERT INTO SampleTable (email) VALUES
+    ('john123@gmail.com'),
+    ('jane.doe456@gmail.com'),
+    ('jack.smith789@yahoo.com')
+
+	create or alter function emailextract(@email varchar(100))
+returns table
+as
+return (
+	SELECT 
+    email,
+    (SUBSTRING(email, 1, PATINDEX('%[0-9]%', email)-1)) AS CharacterPart,
+    SUBSTRING(email, PATINDEX('%[0-9]%', email), 1) AS NumericPart
+FROM 
+    SampleTable
+	);
+SELECT * FROM emailextract('@email');
+
+create or alter  function 
+ alphonly (@string varchar(max))
+	returns varchar(max)
+	as
+begin 
+while patindex('%[^a-zA-Z]%',@string)>0
+	set @string=stuff(@string,PATINDEX('%[^a-zA-Z]%',@string),1,'')
+	return @string
+end;
+select id,dbo.alphonly(email) from SampleTable
+
+SELECT COUNT(*)
+FROM sys.tables
+WHERE name = 'employeee';
+--to get number of table of same name in different databases
+SELECT COUNT(*)
+FROM (
+    SELECT name
+    FROM sys.tables
+    WHERE name = 'patient'
+) AS tbl
+JOIN sys.databases AS db ON db.database_id > 4
+WHERE db.name IN ('hospital', 'hospital_management')
+--------------------------------------------------------
+select datalength('susmita lohani')as charlength;
+select difference('juice','apple');
+select upper('susmita');
+SELECT PATINDEX('%schools%', 'W3Schools.com');
+select replicate('susmita',5);
+select cast(23.44 as int);
+
+---------query to find in how many table do we have same column name 
+SELECT 
+    TABLE_NAME,COLUMN_NAME
+FROM 
+    INFORMATION_SCHEMA.COLUMNS
+WHERE 
+    COLUMN_NAME = 'custid';
+
+-------creating a log table that stores value for update and delete after trigger is fire.
+CREATE TABLE log_table (
+  id INT IDENTITY(1,1) PRIMARY KEY,
+  user_id INT,
+  current_times DATETIME,
+  table_name VARCHAR(50),
+  column_name VARCHAR(50),
+  emp_id INT,
+  old_value VARCHAR(255),
+  new_value VARCHAR(255)
+);
+
+CREATE or alter TRIGGER tr_LogEmployeesTable
+ON employees
+AFTER UPDATE
+AS
+BEGIN
+  SET NOCOUNT ON;
+  
+  DECLARE @user_id INT;
+  SET @user_id = USER_ID();
+
+  INSERT INTO log_table (user_id, current_times, emp_id, table_name, column_name, old_value, new_value)
+  SELECT 
+    @user_id,
+    GETDATE(),
+    i.EmployeeID,
+    'employees',
+    'employee_name',
+    d.FirstName,
+    i.FirstName
+  FROM 
+    deleted d
+    INNER JOIN inserted i ON d.EmployeeID = i.EmployeeID
+  WHERE
+    d.FirstName <> i.FirstName;
+    
+  INSERT INTO log_table (user_id, current_times, emp_id, table_name, column_name, old_value, new_value)
+  SELECT 
+    @user_id,
+    GETDATE(),
+    i.EmployeeID,
+    'employees',
+    'email_id',
+    d.DeptNo,
+    i.DeptNo
+  FROM 
+    deleted d
+    INNER JOIN inserted i ON d.EmployeeID = i.EmployeeID
+  WHERE
+    d.DeptNo <> i.DeptNo;
+END;
+-----------
+update  employees
+set LastName='ram' where EmployeeID=1;
+delete from employees where EmployeeID=1;
+----------------------------------------------------------------------
+CREATE TABLE TriggerDemo_Parent
+(
+   ID INT IDENTITY (1,1) PRIMARY KEY,
+   Emp_First_name VARCHAR (50),
+   Emp_Last_name VARCHAR (50),
+   Emp_Salary INT 
+  )
+GO
+
+CREATE TABLE TriggerDemo_History
+(
+   ID INT IDENTITY (1,1) PRIMARY KEY,
+   ParentID INT,
+   PerformedAction VARCHAR (50),
+  )
+GO
+CREATE TRIGGER AfterInsertTrigger
+ON TriggerDemo_Parent
+AFTER INSERT
+AS
+INSERT INTO TriggerDemo_History VALUES ((SELECT TOP 1  inserted.ID FROM inserted), 'Insert')
+GO
+insert into triggerDemo_Parent values('susmita','lohani',5000);
+insert into triggerDemo_Parent values('sunisha','bhattarai',6000);
+
+CREATE TRIGGER AfterDeleteTrigger
+ON TriggerDemo_Parent
+AFTER DELETE
+AS
+INSERT INTO TriggerDemo_History VALUES ((SELECT TOP 1  deleted.ID FROM deleted), 'Delete')
+GO
+ delete from triggerDemo_Parent where id=2;
+
+CREATE TRIGGER AfterUPDATETrigger
+ON TriggerDemo_Parent
+AFTER UPDATE
+AS
+INSERT INTO TriggerDemo_History VALUES ((SELECT TOP 1  inserted.ID FROM inserted), 'UPDATE')
+GO
+insert into TriggerDemo_Parent values ('santosh','khadka',50000);
+update triggerDemo_Parent set Emp_Salary=6000
+where ID=1;
+
+select * From TriggerDemo_Parent
+select * from TriggerDemo_History
+
+
+----------------------------------------------------------
+--master table
+create table emp(
+id int,
+name varchar(50),
+age int,
+address varchar(50),
+salary float(15),
+tax float(15),
+pf float(15)
+);
+
+insert into emp values (2,'sunisha bhattarai',22,'sanobharyang',6000,null,null);
+
+select * from emp;
+select name,salary,(salary *0.01)as tax,(Salary *0.1)as pf from emp;
+
+CREATE TRIGGER salary_insert_trigger
+ON emp
+AFTER INSERT
+AS
+BEGIN
+   UPDATE emp
+   SET tax = inserted.salary * 0.01,
+       pf = inserted.salary * 0.1
+   FROM emp
+   INNER JOIN inserted ON emp.id = inserted.id;
+END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

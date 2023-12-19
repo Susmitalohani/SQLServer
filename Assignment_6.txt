@@ -1,0 +1,49 @@
+--Assignment_6
+--1.
+SELECT employee_id ,salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 5;
+
+--2.
+SELECT department_name, employee_id, first_name, last_name, salary
+FROM (
+  SELECT d.department_name, e.employee_id, e.first_name, e.last_name, e.salary,
+         ROW_NUMBER() OVER (PARTITION BY d.department_id ORDER BY e.salary DESC) AS row_num
+  FROM employees e
+  JOIN departments d ON e.department_id = d.department_id
+)t
+WHERE row_num <= 2
+ORDER BY department_name, salary DESC;
+
+--3.
+select count(employee_id)as a,city from employees e 
+join departments d 
+on d.department_id =e.department_id 
+join locations l 
+on l.location_id =d.location_id 
+group by city
+order by  a desc
+limit 5;
+
+
+
+--4.
+select e.job_id from employees e 
+join ( select department_id from departments d
+) t
+on e.department_id =t.department_id 
+join jobs j 
+on j.job_id =e.job_id 
+where job_title='%clerk%';
+
+
+--5.
+select e.department_id,e.salary
+	from employees e 
+	inner join 
+	(select department_id ,avg(salary) as avg
+	 from employees e2 
+	 group by e2.department_id ) as t2		 		
+	  on e.department_id=t2.department_id and e.salary > t2.avg order by e.department_id;
+

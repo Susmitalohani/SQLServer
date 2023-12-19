@@ -1,0 +1,32 @@
+---------------------------------------------
+--Assignment_11
+--1.
+create table employee (
+      emp_id int,
+      emp_name varchar(50),
+      gender varchar(5)
+)
+
+insert into employee values ( 
+     501,'aaa','M'),
+     (502,'bbb','F'),
+     (503,'ccc','F'),
+     (504,'ddd','M'),
+     (505,'eee','F');
+
+    select emp_id,gender,
+    case when gender='M' then concat('Mr.',emp_name)
+         when gender='F' then concat('Ms.',emp_name)
+         end as emp_name
+         from employee;
+        
+--2.
+        create table infomember(emp_id int,name varchar(50));
+       insert into infomember values (101,'Bibek Mahatara'),
+       (102,'Deepak Sing');
+
+SELECT emp_id,
+  substring(name from '^[^ ]+') as first_name, 
+  substring(name from '[^ ]+$') as last_name
+FROM infomember;
+ 

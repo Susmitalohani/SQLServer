@@ -1,0 +1,51 @@
+select * from employees;
+select * from departments;
+--1.creating table dept and Emp
+create table Dept(
+Department_id int,
+Department_Name varchar(50)
+);
+
+create table emp(
+emp_id int,
+First_name varchar(50),
+Last_name varchar(50),
+Salary float,
+Department_id int
+);
+--1.inserting values into Emp and Dept
+insert into Dept values (1,'IT'),
+(2,'Database');
+
+insert into emp values (101,'Bibek','Mahatara',2000,1),
+(102,'Avishek','Shakye',1500,2),
+(103,'Bhawona','Shahi',2000,2),
+(104,'Biswas','Khadka',1000,1),
+(105,'Jivan','Basnet',1200,2);
+--2.creating table emp1 as a copy of some columns from EMP
+create table EMP1 as
+select emp_id,First_name,last_name,Salary,Department_id from emp
+where emp_id>106;
+select * from emp1;
+
+
+--3.adding primary key and foreign key using alter command
+alter table emp
+add constraint constraint_name primary key (emp_id);
+
+alter table Dept 
+add constraint dept_id primary key (Department_id);
+
+alter table emp
+add constraint fore
+foreign key(Department_id) references Dept (Department_id);
+
+--4.creating copy of dept table
+create table DEP1 as 
+select Department_id,Department_Name from Dept 
+where Department_id >3;
+select * from dep1;
+
+
+
+

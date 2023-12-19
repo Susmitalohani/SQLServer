@@ -1,0 +1,72 @@
+--Assignment 2
+--1.
+select FIRST_NAME,LAST_NAME,e.DEPARTMENT_ID,DEPARTMENT_NAME 
+from employees e 
+join departments d 
+on e.department_id =d.department_id ;
+
+--2.
+select first_name,last_name,e.department_id,city,state_province
+from employees e 
+join departments d 
+on e.department_id =d.department_id 
+join locations l
+on d.location_id =l.location_id 
+
+--3.
+select FIRST_NAME,LAST_NAME,e.DEPARTMENT_ID,DEPARTMENT_NAME 
+from employees e 
+join departments d 
+on e.department_id =d.department_id 
+where e.department_id = 80 or e.department_id = 40;
+
+--4.
+select concat(first_name,last_name) as fullname,salary 
+from employees e 
+join departments d 
+on e.department_id =d.department_id 
+join locations l
+on d.location_id =l.location_id 
+where city='London';
+ 
+--5.
+select first_name,last_name,e.department_id,city,state_province
+from employees e 
+join departments d 
+on e.department_id =d.department_id 
+join locations l
+on d.location_id =l.location_id 
+where first_name like '%z%';
+
+--6.
+select d.department_id from departments d
+left join employees e 
+on d.department_id =e.department_id;
+
+--7.
+select first_name,last_name,e.department_id,department_name
+from employees e 
+left join departments d 
+on e.department_id =d.department_id;
+
+--8.
+select job_title,avg(Salary) as average_salary
+from employees e 
+join jobs j 
+on e.job_id =j.job_id 
+group by job_title;
+
+--9.
+select d.department_name,count(employee_id) as no_of_employees
+from employees e 
+join departments d 
+on e.department_id =d.department_id 
+group by d.department_id ;
+
+--10.
+select  department_name,avg(Salary)as average_Salary,count(employee_id)as no_of_employees
+from departments d 
+join employees e 
+on e.department_id =d.department_id 
+where commission_pct is not null
+group by department_name;

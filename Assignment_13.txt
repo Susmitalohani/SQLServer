@@ -1,0 +1,83 @@
+-----------------------------------------
+--Assignment 13
+--1.
+create table input ( department_name varchar(20),database float(10));
+insert into input values
+('Intern',5000),
+('Jr Database',15000),
+('Mid Database',22000),
+('Sr Database',70000);
+
+SELECT 'Database' as department,
+       CASE department_name 
+         WHEN 'Intern' THEN 'Intern' 
+         WHEN 'Jr Database' THEN 'Jr DBA' 
+         WHEN 'Mid Database' THEN 'Mid DBA' 
+         WHEN 'Sr Database' THEN 'Sr DBA' 
+       END as db_role,
+       database as salary
+FROM input;
+
+select * from input;
+--2.
+create table courseSales (course varchar(20),
+year varchar(20),
+earning float(20)
+);
+
+drop table courseSales;
+insert into courseSales values 
+('.NET','2012',10000.00),
+('Java','2012',20000.00),
+('.NET','2012',5000.00),
+('.NET','2013',48000.00),
+('Java','2013',30000.00);
+
+-- enable the tablefunc extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS tablefunc;
+
+-- pivot the courseSales table with course as columns and summing earning per year
+SELECT * FROM crosstab(
+  'SELECT year, course, SUM(earning) FROM courseSales GROUP BY year, course ORDER BY year, course',
+  'SELECT DISTINCT course FROM courseSales ORDER BY course'
+) AS ct(year varchar, ".NET" float, "Java" float);
+
+select * from courseSales;
+
+------------------------------
+--3.
+create table Name(id int,
+name varchar(50)
+);
+
+insert into name values
+(1,'RAJA RAMMOHAN RAI'),
+(2,'SACHIN RAMESH TENDULKAR'),
+(3,'ABDUL KALAM SAHIB'),
+(4,'MICROSOFT SQL SERVER'),
+(5,'YEDURAPPA V REDDY');  
+
+select * from name;
+
+SELECT 
+  split_part(name, ' ', 1) AS first_name,
+  split_part(name, ' ', 2) AS middle_name,
+  split_part(name, ' ', 3) AS last_name
+FROM name;
+
+--------------------------------
+--4.
+create table gender(values varchar(20));
+insert into gender values
+('Male'),
+('Male'),
+('Male'),
+('Female'),
+('Male'),
+('Female');
+select * from gender;
+
+SELECT 
+  CEILING(COUNT(CASE WHEN values = 'Male' THEN 1 END) * 100.0 / COUNT(*)) AS male_percentage,
+  floor(COUNT(CASE WHEN values = 'Female' THEN 1 END) * 100.0 / COUNT(*)) AS female_percentage
+FROM gender;

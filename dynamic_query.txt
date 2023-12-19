@@ -1,0 +1,45 @@
+select * from Student;
+
+CREATE or alter PROCEDURE getdata(
+      @TableName NVARCHAR(50),@column_name varchar(50)
+)
+AS
+BEGIN    
+     DECLARE @Sql AS NVARCHAR(MAX)
+     SET @Sql='SELECT ' + ('+@column_name+') + ' FROM '+ @TableName
+     EXEC SP_EXECUTESQL @SQL   
+END
+
+EXEC getdata 'first_name','Student'
+
+ CREATE or alter PROCEDURE SelectDataDynamic
+    @tableName NVARCHAR(128),
+    @columnNames NVARCHAR(MAX),
+    @Value NVARCHAR(MAX)
+AS
+BEGIN
+    DECLARE @sql NVARCHAR(MAX)
+
+    -- Build the dynamic SQL statement
+    SET @sql = 'select  * from ' + @tableName + 'where columnNames in ' + @columnNames + 'in' + @Value 
+
+    -- Execute the dynamic SQL statement
+    EXEC sp_executesql @sql
+END
+
+exec SelectDataDynamic 'student','first_name','luisa';
+
+select * from student where first_name='luisa';
+CREATE PROCEDURE InsertData
+    @TableName NVARCHAR(255),
+    @ColumnNames NVARCHAR(MAX),
+    @ColumnValues NVARCHAR(MAX)
+AS
+BEGIN
+    DECLARE @SQL NVARCHAR(MAX)
+    SET @SQL = 'select * from  ' + @TableName + ' (' + @ColumnNames + ') VALUES (' + @ColumnValues + ')'
+    EXEC sp_executesql @SQL
+END
+
+exec InsertData 'students','first_name','james';
+select * from students;

@@ -1,0 +1,72 @@
+-------------------------------------------------
+--Assignment_10
+	create table calls
+		(
+		call_date	date,
+		origination_number	bigint,
+		designation_number	bigint,
+		duration	numeric
+		) partition by range(call_date);
+	
+	create table partation_january partition of calls for values
+from ('2022-01-01') to ('2022-01-30');
+
+
+create table partation_feb partition of calls for values
+from ('2022-02-01') to ('2022-02-28');
+
+
+insert into calls values
+('2022-01-03',9843364007,9867453548,30);
+insert into calls values
+('2022-02-06',9843638887,9841234568,3);
+insert into calls values
+('2022-01-09',9843567865,9823456754,4);
+insert into calls values
+('2022-01-05',9843342356,9841234567,2);
+
+insert into calls values
+('2022-02-13',9876543637,9841542367,3.5);
+
+
+select tableoid::regclass,* from calls ;
+
+select * from calls c 
+
+
+--2.
+create table public.employees_copy (
+	employee_id int NOT null ,
+	first_name varchar(20) NULL,
+	last_name varchar(20) NOT NULL,
+	email varchar(20) NOT NULL,
+	phone_number varchar(20) NULL,
+	hire_date timestamp NOT NULL,
+	job_id varchar(10) NOT NULL,
+	salary numeric NULL,
+	commission_pct numeric NULL,
+	manager_id int NULL,
+	department_id int NULL
+) partition by list(job_id);
+
+
+select * from employees_copy ec ;
+select  e.job_id ,count(e.job_id)  from employees e group by e.job_id order by e.count desc  ;
+
+
+create table partation_1 partition of employees_copy for values
+in ('SH_CLERK');
+
+
+create table partation_2 partition of employees_copy for values
+in ('SA_REP');
+
+create table partation_3 partition of employees_copy for values
+in ('ST_CLERK');
+
+create table partation_4 partition of employees_copy default;
+
+
+insert into employees_copy select * from employees
+
+select tableoid::regclass,* from employees_copy;

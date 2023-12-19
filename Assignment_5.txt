@@ -1,0 +1,49 @@
+--------------------------------
+--Assignment_5
+--1.
+select employee_id,salary from employees e
+join departments d 
+on e.department_id =d.department_id 
+where department_name = 'IT'
+union 
+select employee_id,salary  from employees
+where salary > (select salary from employees where employee_id=101)
+
+--2.
+select employee_id from employees 
+where department_id between 20 and 30 
+except 
+select employee_id from employees
+where department_id =40; 
+
+--3.
+select country_name,city from employees e 
+join departments d 
+on e.department_id =d.department_id 
+join locations l 
+on d.location_id =l.location_id 
+join countries c 
+on c.country_id =l.country_id 
+join regions r 
+on r.region_id =c.region_id 
+where region_name='Europe';
+
+--4.
+select c.country_id,country_name from countries c
+inner join locations l 
+on l.country_id=c.country_id 
+left join departments d 
+on d.location_id =l.location_id ;
+
+--5.
+SELECT e.employee_id, e.job_id
+FROM employees e
+JOIN job_history jh1 ON e.employee_id = jh1.employee_id
+JOIN job_history jh2 ON e.employee_id = jh2.employee_id
+WHERE jh1.start_date = (
+    SELECT MIN(start_date)
+    FROM job_history
+    WHERE employee_id = e.employee_id
+)
+AND jh2.end_date IS NULL
+AND e.job_id = jh1.job_id
